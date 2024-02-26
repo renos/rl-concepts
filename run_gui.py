@@ -2,6 +2,8 @@ import argparse
 
 import numpy as np
 
+from crafter import make_base_env
+
 try:
     import pygame
 except ImportError:
@@ -10,6 +12,7 @@ except ImportError:
 from PIL import Image
 
 from contrib import crafter
+from tensordict.tensordict import TensorDict
 
 
 def main():
@@ -24,7 +27,7 @@ def main():
     parser.add_argument("--size", type=int, nargs=2, default=(0, 0))
     parser.add_argument("--record", type=str, default=None)
     parser.add_argument("--fps", type=int, default=5)
-    parser.add_argument("--wait", type=boolean, default=False)
+    parser.add_argument("--wait", type=boolean, default=True)
     parser.add_argument(
         "--death", type=str, default="reset", choices=["continue", "reset", "quit"]
     )
@@ -59,16 +62,17 @@ def main():
     size[0] = size[0] or args.window[0]
     size[1] = size[1] or args.window[1]
 
-    env = crafter.Env(
-        area=args.area, view=args.view, length=args.length, seed=args.seed
-    )
-    env = crafter.Recorder(env, args.record)
+    # env = crafter.Env(
+    #     area=args.area, view=args.view, length=args.length, seed=args.seed
+    # )
+    # env = crafter.Recorder(env, args.record)
+    env = make_base_env(task="all")
     env.reset()
     achievements = set()
     duration = 0
     return_ = 0
     was_done = False
-    print("Diamonds exist:", env._world.count("diamond"))
+    print("Diamonds exist:", env.env._world.count("diamond"))
 
     pygame.init()
     screen = pygame.display.set_mode(args.window)
@@ -77,7 +81,7 @@ def main():
     while running:
 
         # Rendering.
-        image = env.render(size)
+        image = env.env.render(size)
         if size != args.window:
             image = Image.fromarray(image)
             image = image.resize(args.window, resample=Image.NEAREST)
@@ -103,27 +107,32 @@ def main():
                 if pressed[key]:
                     break
             else:
-                if args.wait and not env._player.sleeping:
+                if args.wait and not env.env._player.sleeping:
                     continue
                 else:
                     action = "noop"
+        print(action)
 
-        # Environment step.
-        _, reward, done, _ = env.step(env.action_names.index(action))
+        # _, reward, done, _ = env.env.step(env.env.action_names.index(action))
+        step_out = env.step(
+            TensorDict({"action": env.env.action_names.index(action)}, batch_size=[])
+        )
+        reward = step_out["next"]["reward"].item()
+        done = step_out["next"]["done"].item()
         duration += 1
 
         # Achievements.
         unlocked = {
             name
-            for name, count in env._player.achievements.items()
+            for name, count in env.env._player.achievements.items()
             if count > 0 and name not in achievements
         }
         for name in unlocked:
             achievements |= unlocked
-            total = len(env._player.achievements.keys())
+            total = len(env.env._player.achievements.keys())
             print(f"Achievement ({len(achievements)}/{total}): {name}")
-        if env._step > 0 and env._step % 100 == 0:
-            print(f"Time step: {env._step}")
+        if env.env._step > 0 and env.env._step % 100 == 0:
+            print(f"Time step: {env.env._step}")
         if reward:
             print(f"Reward: {reward}")
             return_ += reward
