@@ -186,6 +186,8 @@ class ConceptEnv(gym.ObservationWrapper):
                 history_concepts[cur_pos] = self.old_closest_blocks[block_type][
                     "relative_position"
                 ]
+            else:
+                history_concepts[cur_pos] = np.array([99, 99])
             cur_pos += 1
         return history_concepts
 
@@ -304,7 +306,7 @@ def make_base_env(task, is_test=False, size=(224, 224), use_pixels=True):
         device="cpu",
     ).set_info_dict_reader(info_dict_reader=reader)
     env = TransformedEnv(env)
-    env.append_transform(NoopResetEnv(noops=30, random=True))
+    # env.append_transform(NoopResetEnv(noops=30, random=True))
     return env
 
 

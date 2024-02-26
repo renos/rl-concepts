@@ -100,7 +100,6 @@ class SimplifiedConceptNetwork(nn.Module):
         # Pass the input pixels through the CNN
         if self.use_pixels:
             cnn_output = self.cnn(pixels)
-            print("should not be getting here")
 
         # we don't do positional encoding on history
         status_embeddings = self.status_concept_encoder(
