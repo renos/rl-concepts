@@ -1,0 +1,43 @@
+env:
+  env_name: crafter
+  num_envs: 8
+  category: crafter
+
+# collector
+collector:
+  frames_per_batch: 4096
+  total_frames: 10_000_000
+
+# logger
+logger:
+  backend: wandb
+  project_name: ppo_concepts
+  group_name: null
+  exp_name: Crafter_Concepts
+  test_interval: 40_000
+  num_test_episodes: 3
+
+# Optim
+optim:
+  lr: 3.0e-4
+  eps: 1.0e-6
+  weight_decay: 0.0
+  max_grad_norm: 0.5
+  anneal_lr: True
+  anneal_milestones: [0.15, 0.66, 0.9]
+  anneal_lrs: [3e-4, 2e-4, 15e-5]
+  annealing_end_batch: 244
+
+# loss
+loss:
+  gamma: 0.95
+  mini_batch_size: 512
+  ppo_epochs: 3
+  gae_lambda: 0.65
+  clip_epsilon: 0.2
+  anneal_clip_epsilon: False
+  critic_coef: 0.5
+  entropy_coef: 0.01
+  loss_critic_type: l2
+  concept_coef: 0.0
+  model: impala
