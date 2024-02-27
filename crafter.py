@@ -61,7 +61,7 @@ class ConceptEnv(gym.ObservationWrapper):
             "lava": 1,
         }
         total_blocks = sum(self.block_types_to_track.values())
-        self.history_concepts = (total_blocks + 1, 2)
+        self.history_concepts = (total_blocks + 1, 3)
         self.test = is_test
         self.task = task
         self.k = 5
@@ -217,6 +217,7 @@ class ConceptEnv(gym.ObservationWrapper):
     def info_to_history_concepts(self, info):
         cur_pos = 0
         history_concepts = np.zeros(self.history_concepts)
+        facing_block = np.flip(np.array(info["player_facing"]))
 
         for block_type, count in self.block_types_to_track.items():
             if block_type in self.old_closest_blocks:
@@ -226,20 +227,21 @@ class ConceptEnv(gym.ObservationWrapper):
                     history_concepts[cur_pos][:2] = closest_blocks[i][
                         "relative_position"
                     ]
+                    history_concepts[cur_pos][2] = (
+                        closest_blocks[i]["relative_position"] == facing_block
+                    ).all()
                     cur_pos += 1
                 # Fill the remaining slots if fewer blocks found than needed
                 for _ in range(count - num_blocks_to_add):
-                    history_concepts[cur_pos] = np.array([20, 20])
+                    history_concepts[cur_pos] = np.array([20, 20, 0])
                     cur_pos += 1
             else:
                 # If no blocks of this type, fill all slots for this block type with [99, 99]
                 for _ in range(count):
-                    history_concepts[cur_pos] = np.array([20, 20])
+                    history_concepts[cur_pos] = np.array([20, 20, 0])
                     cur_pos += 1
-        history_concepts[-1][:2] = np.flip(np.array(info["player_facing"]))
+        history_concepts[-1][:2] = facing_block
         # history_concepts[-1][2] = 1.0
-        print(self.old_closest_blocks)
-        print(history_concepts)
         return history_concepts
 
     def into_to_achievements(self, info):

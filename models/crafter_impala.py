@@ -232,7 +232,7 @@ def make_ppo_modules_crafter_impala_achievements(proof_environment, model_params
     )
 
     history_position_embedding = StackedFCFanInInitReLULayer(
-        2,
+        3,
         16,
         16,
         model_params["posenc_n_layers"],
