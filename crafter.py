@@ -236,7 +236,7 @@ class ConceptEnv(gym.ObservationWrapper):
                 for _ in range(count):
                     history_concepts[cur_pos] = np.array([20, 20])
                     cur_pos += 1
-        history_concepts[-1][:2] = np.array(info["player_facing"].reverse())
+        history_concepts[-1][:2] = np.array(list(info["player_facing"]).reverse())
         # history_concepts[-1][2] = 1.0
 
         return history_concepts
