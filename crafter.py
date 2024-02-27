@@ -41,11 +41,30 @@ class ConceptEnv(gym.ObservationWrapper):
         self.env = env
         self.use_pixels = use_pixels
 
-        self.achievements_len = 22 + 16
-        self.status_concepts = (26, 1)
-        self.history_concepts = (12, 2)
+        self.achievements_len = 22  # + 16
+        self.status_concepts = (22 + 16, 1)
+
+        self.block_types_to_track = {
+            "stone": 5,
+            "wood": 5,
+            "water": 1,
+            "tree": 1,
+            "plant": 1,
+            "coal": 1,
+            "iron": 1,
+            "diamond": 1,
+            "table": 1,
+            "furnace": 1,
+            "cow": 1,
+            "skeleton": 1,
+            "zombie": 1,
+            "lava": 1,
+        }
+        total_blocks = sum(self.block_types_to_track.values())
+        self.history_concepts = (total_blocks + 1, 2)
         self.test = is_test
         self.task = task
+        self.k = 5
 
     @property
     def observation_space(self):
@@ -146,64 +165,91 @@ class ConceptEnv(gym.ObservationWrapper):
 
     def info_to_status_concepts(self, info):
         achievements = info["achievements"]
-        achievements_list = [0] * self.status_concepts[0]
+        achievements_list = [0] * (self.status_concepts[0] - 16)
         pos = 0
         for achievement, achievement_value in achievements.items():
             # if achievement == "collect_stone" or achievement == "collect_wood":
             #     continue
             achievements_list[pos] = int(achievement_value > 0)
             pos += 1
-        inventory = info["inventory"]
+        # inventory = info["inventory"]
         # achievements_list[-4] = int(inventory["health"] < 5)
         # achievements_list[-3] = int(inventory["food"] < 5)
         # achievements_list[-2] = int(inventory["drink"] < 5)
         # achievements_list[-1] = int(inventory["energy"] < 5)
-        achievements_list[22] = inventory["health"]
-        achievements_list[23] = inventory["food"]
-        achievements_list[24] = inventory["drink"]
-        achievements_list[25] = inventory["energy"]
+        inventory = np.array(self.info_to_inventory(info)).reshape(-1)
 
-        return np.array(achievements_list).reshape(self.status_concepts)
+        # print(inventory)
 
+        return np.concatenate((achievements_list, inventory)).reshape(
+            1, self.status_concepts[0]
+        )
+
+    # def info_to_history_concepts(self, info):
+    #     history_concepts = np.zeros(self.history_concepts)
+    #     cur_pos = 0
+    #     for block_type in [
+    #         "water",
+    #         "stone",
+    #         "tree",
+    #         "plant",
+    #         "coal",
+    #         "iron",
+    #         "diamond",
+    #         "table",
+    #         "furnace",
+    #         "cow",
+    #         "skelton",
+    #         "zombie",
+    #         "lava",
+    #     ]:
+    #         if block_type in self.old_closest_blocks:
+    #             history_concepts[cur_pos][:2] = self.old_closest_blocks[block_type][
+    #                 "relative_position"
+    #             ]
+    #             # history_concepts[cur_pos][2] = 1.0
+    #         else:
+    #             history_concepts[cur_pos] = np.array([99, 99])
+    #         cur_pos += 1
+    #     history_concepts[-1][:2] = np.array(info["player_facing"])
+    #     # history_concepts[-1][2] = 1.0
+    #     return history_concepts
     def info_to_history_concepts(self, info):
-        history_concepts = np.zeros(self.history_concepts)
         cur_pos = 0
-        for block_type in [
-            "water",
-            "stone",
-            "tree",
-            "coal",
-            "iron",
-            "diamond",
-            "table",
-            "furnace",
-            "cow",
-            "skelton",
-            "zombie",
-            "lava",
-        ]:
+        history_concepts = np.zeros(self.history_concepts)
+
+        for block_type, count in self.block_types_to_track.items():
             if block_type in self.old_closest_blocks:
-                history_concepts[cur_pos] = self.old_closest_blocks[block_type][
-                    "relative_position"
-                ]
+                closest_blocks = self.old_closest_blocks[block_type]
+                num_blocks_to_add = min(len(closest_blocks), count)
+                for i in range(num_blocks_to_add):
+                    history_concepts[cur_pos][:2] = closest_blocks[i][
+                        "relative_position"
+                    ]
+                    cur_pos += 1
+                # Fill the remaining slots if fewer blocks found than needed
+                for _ in range(count - num_blocks_to_add):
+                    history_concepts[cur_pos] = np.array([99, 99])
+                    cur_pos += 1
             else:
-                history_concepts[cur_pos] = np.array([99, 99])
-            cur_pos += 1
+                # If no blocks of this type, fill all slots for this block type with [99, 99]
+                for _ in range(count):
+                    history_concepts[cur_pos] = np.array([99, 99])
+                    cur_pos += 1
+        history_concepts[-1][:2] = np.array(info["player_facing"])
+        # history_concepts[-1][2] = 1.0
+
         return history_concepts
 
     def into_to_achievements(self, info):
         achievements = info["achievements"]
-        achievements_list = [0] * (self.achievements_len - 16)
+        achievements_list = [0] * (self.achievements_len)
         for i, achievement in enumerate(achievements):
             achievements_list[i] = achievements[achievement]
 
         achievements_list = np.array(achievements_list)
 
-        inventory = np.array(self.info_to_inventory(info)).reshape(-1)
-
-        return np.concatenate((achievements_list, inventory)).reshape(
-            1, self.achievements_len
-        )
+        return achievements_list.reshape(1, self.achievements_len)
 
     def info_to_misc(self, info):
         misc_list = [0 for _ in range(2)]
@@ -225,6 +271,7 @@ class ConceptEnv(gym.ObservationWrapper):
             old_pos=self.old_pos,
             new_pos=info["player_pos"],
             new_semantic_map=self.semantic,
+            k=self.k,
         )
         self.old_pos = info["player_pos"]
 
@@ -253,6 +300,7 @@ class ConceptEnv(gym.ObservationWrapper):
             old_pos=None,
             new_pos=info["player_pos"],
             new_semantic_map=self.semantic,
+            k=self.k,
         )
         self.old_pos = info["player_pos"]
 
@@ -289,9 +337,11 @@ class ConceptEnv(gym.ObservationWrapper):
         if self.test:
             obs_dict["render_pixels"] = self.env.render(size=(224, 224))
         obs_dict["visual_concepts"] = self._visual_concepts(info)
-        obs_dict["status_concepts"] = self.info_to_status_concepts(info)
-        obs_dict["history_concepts"] = self.info_to_history_concepts(info)
+        obs_dict["status_concepts"] = self.info_to_status_concepts(info) / 10.0
+        obs_dict["history_concepts"] = self.info_to_history_concepts(info) / 100.0
         obs_dict["achievements"] = self.into_to_achievements(info)
+        # print(obs_dict["status_concepts"])
+        # print(obs_dict["history_concepts"])
         return obs_dict
 
 

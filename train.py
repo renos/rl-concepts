@@ -15,7 +15,8 @@ import os
 
 from train_utils import CombinedLRScheduler
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,2,3,4"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0,2,3,4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 
 @hydra.main(config_path="./configs/", config_name="config_atari", version_base="1.1")
@@ -42,7 +43,7 @@ def main(cfg: "DictConfig"):  # noqa: F821
     import importlib
     from pathlib import Path
 
-    device = "cpu" if not torch.cuda.device_count() else "cuda"
+    device = "cpu" if not torch.cuda.device_count() else "cuda:4"
 
     _has_hydra = importlib.util.find_spec("hydra") is not None
     if _has_hydra:
