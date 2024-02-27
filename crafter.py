@@ -236,9 +236,10 @@ class ConceptEnv(gym.ObservationWrapper):
                 for _ in range(count):
                     history_concepts[cur_pos] = np.array([20, 20])
                     cur_pos += 1
-        history_concepts[-1][:2] = np.array(list(info["player_facing"]).reverse())
+        history_concepts[-1][:2] = np.flip(np.array(info["player_facing"]))
         # history_concepts[-1][2] = 1.0
-
+        print(self.old_closest_blocks)
+        print(history_concepts)
         return history_concepts
 
     def into_to_achievements(self, info):

@@ -13,6 +13,7 @@ from PIL import Image
 
 from contrib import crafter
 from tensordict.tensordict import TensorDict
+import torch
 
 
 def main():
@@ -67,7 +68,7 @@ def main():
     # )
     # env = crafter.Recorder(env, args.record)
     env = make_base_env(task="all")
-    env.reset()
+    td = env.reset()
     achievements = set()
     duration = 0
     return_ = 0
@@ -114,11 +115,19 @@ def main():
         print(action)
 
         # _, reward, done, _ = env.env.step(env.env.action_names.index(action))
-        step_out = env.step(
-            TensorDict({"action": env.env.action_names.index(action)}, batch_size=[])
+        td["action"] = torch.nn.functional.one_hot(
+            torch.tensor(
+                [env.env.action_names.index(action)],
+                dtype=torch.int64,
+                device="cpu",
+            ),
+            17,
         )
-        reward = step_out["next"]["reward"].item()
-        done = step_out["next"]["done"].item()
+
+        td = env.step(td)
+
+        reward = td["next"]["reward"].item()
+        done = td["next"]["done"].item()
         duration += 1
 
         # Achievements.
