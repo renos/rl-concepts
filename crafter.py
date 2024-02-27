@@ -46,9 +46,9 @@ class ConceptEnv(gym.ObservationWrapper):
 
         self.block_types_to_track = {
             "stone": 5,
-            "wood": 5,
+            "wood": 1,
             "water": 1,
-            "tree": 1,
+            "tree": 5,
             "plant": 1,
             "coal": 1,
             "iron": 1,
