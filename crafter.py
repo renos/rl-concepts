@@ -229,14 +229,14 @@ class ConceptEnv(gym.ObservationWrapper):
                     cur_pos += 1
                 # Fill the remaining slots if fewer blocks found than needed
                 for _ in range(count - num_blocks_to_add):
-                    history_concepts[cur_pos] = np.array([99, 99])
+                    history_concepts[cur_pos] = np.array([20, 20])
                     cur_pos += 1
             else:
                 # If no blocks of this type, fill all slots for this block type with [99, 99]
                 for _ in range(count):
-                    history_concepts[cur_pos] = np.array([99, 99])
+                    history_concepts[cur_pos] = np.array([20, 20])
                     cur_pos += 1
-        history_concepts[-1][:2] = np.array(info["player_facing"])
+        history_concepts[-1][:2] = np.array(info["player_facing"].reverse())
         # history_concepts[-1][2] = 1.0
 
         return history_concepts
@@ -338,7 +338,7 @@ class ConceptEnv(gym.ObservationWrapper):
             obs_dict["render_pixels"] = self.env.render(size=(224, 224))
         obs_dict["visual_concepts"] = self._visual_concepts(info)
         obs_dict["status_concepts"] = self.info_to_status_concepts(info) / 10.0
-        obs_dict["history_concepts"] = self.info_to_history_concepts(info) / 100.0
+        obs_dict["history_concepts"] = self.info_to_history_concepts(info) / 20.0
         obs_dict["achievements"] = self.into_to_achievements(info)
         # print(obs_dict["status_concepts"])
         # print(obs_dict["history_concepts"])
